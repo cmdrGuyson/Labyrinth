@@ -1,6 +1,7 @@
 #include <iostream>
 #include <windows.h>
 #include <string>
+#include <fstream>
 using namespace std;
 
 void GoToXY(int column, int line);
@@ -10,6 +11,7 @@ void loader(int color);
 void loadingScreen();
 void menuScreen();
 void menuCtrl();
+void addEntry();
 
 
 WORD GetConsoleTextAttribute(HANDLE hCon)
@@ -21,12 +23,13 @@ WORD GetConsoleTextAttribute(HANDLE hCon)
 
 int main(void)
 {
+	system("color 7");
+
 	if (loginCtrl()) {
 		
 		loadingScreen();
 		menuScreen();
 	}
-
 	
 
 
@@ -186,18 +189,25 @@ void menuCtrl() {
 		cin >> input;
 		fail = cin.fail();
 
+		if (input == 0) {
+			break;
+		}
+
 		switch (input) {
 		case 1:
 			system("cls");
-			cout << "add" << endl;
+			cin.clear();
+			cin.ignore(100, '\n');
+			addEntry();
 			break;
 		case 2:
 			system("cls");
+			cin.clear();
+			cin.ignore(100, '\n');
 			cout << "view" << endl;
 		}
 
-		cin.clear();
-		cin.ignore(100, '\n');
+		
 
 		if (input == 0) {
 			break;
@@ -206,5 +216,56 @@ void menuCtrl() {
 		menuScreen();
 
 	} while (input != 0 || fail);
+
+}
+
+void addEntry() {
+
+	system("color 7");
+
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	const int saved_colors = GetConsoleTextAttribute(hConsole);
+
+	string entryName, text;
+
+	cout << "\t╔═══════════════════════════════════════════════════════════════════════════════════════════════════════╗" << endl;
+	cout << "\t┃                                                                                                       ┃" << endl;
+	cout << "\t╚═══════════════════════════════════════════════════════════════════════════════════════════════════════╝" << endl;
+
+	GoToXY(10, 1);
+
+	SetConsoleTextAttribute(hConsole, 10);
+	cout << "ADD ENTRY" << endl;
+	SetConsoleTextAttribute(hConsole, 8);
+	GoToXY(78, 1);
+	cout << "(After adding the entry input #)" << endl;
+	SetConsoleTextAttribute(hConsole, saved_colors);
+
+	GoToXY(5, 5);
+	cout << "ENTRY NAME: ";
+	SetConsoleTextAttribute(hConsole, 10);
+	getline(cin, entryName);
+	string path = "Entries\\" + entryName + ".txt";
+	SetConsoleTextAttribute(hConsole, saved_colors);
+
+	GoToXY(5, 7);
+	cout << "ENTRY DETAILS: \n" << endl;
+	SetConsoleTextAttribute(hConsole, 10);
+
+	fstream file;
+	file.open(path, fstream::app);
+
+	
+
+	do {
+		getline(cin, text);
+
+		if (text != "#") {
+			file << text << '\n';
+		}
+
+	} while (text != "#");
+
+	file.close();
 
 }
