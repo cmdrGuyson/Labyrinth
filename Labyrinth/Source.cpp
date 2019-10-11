@@ -2,6 +2,11 @@
 #include <windows.h>
 #include <string>
 #include <fstream>
+
+#include "./Crypto/modes.h"
+#include "./Crypto/aes.h"
+#include "./Crypto/filters.h"
+
 using namespace std;
 
 void GoToXY(int column, int line);
@@ -12,6 +17,9 @@ void loadingScreen();
 void menuScreen();
 void menuCtrl();
 void addEntry();
+void viewEntry();
+string encrypt(string plaintext);
+string decrypt(string ciphertext);
 
 
 WORD GetConsoleTextAttribute(HANDLE hCon)
@@ -145,6 +153,7 @@ void loadingScreen() {
 
 void menuScreen() {
 	system("cls");
+	system("color 7");
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	const int saved_colors = GetConsoleTextAttribute(hConsole);
 
@@ -204,7 +213,8 @@ void menuCtrl() {
 			system("cls");
 			cin.clear();
 			cin.ignore(100, '\n');
-			cout << "view" << endl;
+			viewEntry();
+			break;
 		}
 
 		
@@ -261,6 +271,7 @@ void addEntry() {
 		getline(cin, text);
 
 		if (text != "#") {
+			text = encrypt(text);
 			file << text << '\n';
 		}
 
@@ -268,4 +279,77 @@ void addEntry() {
 
 	file.close();
 
+}
+
+void viewEntry() {
+	system("color 7");
+
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	const int saved_colors = GetConsoleTextAttribute(hConsole);
+
+	string entryName, text;
+
+	cout << "\t╔═══════════════════════════════════════════════════════════════════════════════════════════════════════╗" << endl;
+	cout << "\t┃                                                                                                       ┃" << endl;
+	cout << "\t╚═══════════════════════════════════════════════════════════════════════════════════════════════════════╝" << endl;
+
+	GoToXY(10, 1);
+
+	cout << "ENTRY: ";
+	SetConsoleTextAttribute(hConsole, 10);
+	getline(cin, entryName);
+
+	GoToXY(0, 5);
+
+	ifstream in("Entries\\" + entryName + ".txt");
+
+	if (getline(in, text)) {
+		while (getline(in, text)) {
+			text = decrypt(text);
+			cout << text << endl;
+		}
+	}
+	else {
+		cout << "The entry does not exist." << endl;
+	}
+
+	system("pause");
+
+}
+
+string encrypt(string plaintext) {
+
+	CryptoPP::byte key[CryptoPP::AES::DEFAULT_KEYLENGTH], iv[CryptoPP::AES::BLOCKSIZE];
+	memset(key, 0x00, CryptoPP::AES::DEFAULT_KEYLENGTH);
+	memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
+
+	string ciphertext;
+
+	CryptoPP::AES::Encryption aesEncryption(key, CryptoPP::AES::DEFAULT_KEYLENGTH);
+	CryptoPP::CBC_Mode_ExternalCipher::Encryption cbcEncryption(aesEncryption, iv);
+
+	CryptoPP::StreamTransformationFilter stfEncryptor(cbcEncryption, new CryptoPP::StringSink(ciphertext));
+	stfEncryptor.Put(reinterpret_cast<const unsigned char*>(plaintext.c_str()), plaintext.length());
+	stfEncryptor.MessageEnd();
+
+	return ciphertext;
+
+}
+
+string decrypt(string ciphertext) {
+
+	CryptoPP::byte key[CryptoPP::AES::DEFAULT_KEYLENGTH], iv[CryptoPP::AES::BLOCKSIZE];
+	memset(key, 0x00, CryptoPP::AES::DEFAULT_KEYLENGTH);
+	memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
+
+	string decryptedtext;
+
+	CryptoPP::AES::Decryption aesDecryption(key, CryptoPP::AES::DEFAULT_KEYLENGTH);
+	CryptoPP::CBC_Mode_ExternalCipher::Decryption cbcDecryption(aesDecryption, iv);
+
+	CryptoPP::StreamTransformationFilter stfDecryptor(cbcDecryption, new CryptoPP::StringSink(decryptedtext));
+	stfDecryptor.Put(reinterpret_cast<const unsigned char*>(ciphertext.c_str()), ciphertext.size());
+	stfDecryptor.MessageEnd();
+
+	return decryptedtext;
 }
